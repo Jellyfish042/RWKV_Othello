@@ -4,6 +4,7 @@ from threading import Thread
 from othello import Othello
 from rwkv_for_ui import OthelloAI
 from typing import Dict, Any
+import os
 
 
 class ModernOthelloUI:
@@ -12,7 +13,7 @@ class ModernOthelloUI:
         self.master.title("RWKV-Othello")
         self.master.geometry("1515x780")
         self.master.resizable(False, False)
-        
+
         self.fonts = {
             "title": font.Font(family="Inter SemiBold", size=24),
             "subtitle": font.Font(family="Inter SemiBold", size=16),
@@ -45,10 +46,16 @@ class ModernOthelloUI:
         self.search_layers = tk.IntVar(value=1)
         self.top_p = tk.DoubleVar(value=0.0)
 
+        self.model_path = tk.StringVar(value="models/rwkv7_othello_26m_L10_D448_extended")
+
         self.setup_ui()
         self.new_game()
 
-        self.ai = OthelloAI()
+        try:
+            self.ai = OthelloAI(self.model_path.get())
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load default model: {str(e)}")
+            self.ai = None
 
         self.evaluation_history = {
             "black": [],
@@ -58,7 +65,7 @@ class ModernOthelloUI:
 
         self.black_player.trace_add("write", lambda *args: self.on_player_change())
         self.white_player.trace_add("write", lambda *args: self.on_player_change())
-        
+
         self.counter = 0
 
     def setup_ui(self):
@@ -89,6 +96,39 @@ class ModernOthelloUI:
         )
         player_frame.pack(fill="x", padx=10, pady=10)
         self.create_player_settings(player_frame)
+
+        # Add standalone model selection frame
+        model_frame = tk.LabelFrame(
+            parent,
+            text="Model",
+            font=self.fonts["text"],
+            bg=self.colors["bg"],
+            fg=self.colors["text"],
+        )
+        model_frame.pack(fill="x", padx=10, pady=10)
+
+        # Automatically read all model files from models directory
+        models_dir = "models"
+        models = []
+        if os.path.exists(models_dir):
+            models = [os.path.join(models_dir, f) for f in os.listdir(models_dir)]
+            # Filter out non-model files
+            models = [m.replace(".pth", "") for m in models]
+
+        if not models:
+            messagebox.showwarning("Warning", "No models found in models directory!")
+
+        model_menu = ttk.Combobox(
+            model_frame, 
+            textvariable=self.model_path,
+            values=models,
+            state="readonly",
+            width=40
+        )
+        model_menu.pack(padx=10, pady=10)
+
+        # Bind model change event
+        self.model_path.trace_add("write", self.on_model_change)
 
         settings_frame = tk.LabelFrame(
             parent,
@@ -506,9 +546,7 @@ class ModernOthelloUI:
             "pady": 2,
         }
 
-        tk.Button(parent, text="-", command=decrease_cmd, **btn_style).pack(
-            side="left", padx=2
-        )
+        tk.Button(parent, text="-", command=decrease_cmd, **btn_style).pack(side="left", padx=2)
 
         tk.Label(
             parent,
@@ -519,9 +557,7 @@ class ModernOthelloUI:
             fg=self.colors["text"],
         ).pack(side="left", padx=5)
 
-        tk.Button(parent, text="+", command=increase_cmd, **btn_style).pack(
-            side="left", padx=2
-        )
+        tk.Button(parent, text="+", command=increase_cmd, **btn_style).pack(side="left", padx=2)
 
     def update_value(self, variable, delta):
         current_value = variable.get()
@@ -606,9 +642,7 @@ class ModernOthelloUI:
 
         button_frame = tk.Frame(main_container, bg=self.colors["bg"])
         button_frame.pack(pady=20)
-        tk.Button(
-            button_frame, text="New Game", command=self.new_game, **btn_style
-        ).pack()
+        tk.Button(button_frame, text="New Game", command=self.new_game, **btn_style).pack()
 
     def create_status_display(self, parent):
         status = tk.Frame(parent, bg=self.colors["bg"])
@@ -754,11 +788,7 @@ class ModernOthelloUI:
         )
 
     def update_current_indicator(self):
-        color = (
-            self.colors["black"]
-            if self.game.current_player == 1
-            else self.colors["white"]
-        )
+        color = self.colors["black"] if self.game.current_player == 1 else self.colors["white"]
         self.draw_piece(self.current_indicator, color, is_indicator=True)
 
     def show_game_result(self, info):
@@ -795,26 +825,16 @@ class ModernOthelloUI:
                 self.show_game_result(info)
                 return
 
-            current_player_type = (
-                self.black_player.get()
-                if self.game.current_player == 1
-                else self.white_player.get()
-            )
+            current_player_type = self.black_player.get() if self.game.current_player == 1 else self.white_player.get()
 
-            if (
-                current_player_type == "AI" and self.game.get_legal_moves()
-            ):
+            if current_player_type == "AI" and self.game.get_legal_moves():
                 self.make_ai_move()
 
     def on_player_change(self):
         if not self.manual_control:
             return
 
-        current_player_type = (
-            self.black_player.get()
-            if self.game.current_player == 1
-            else self.white_player.get()
-        )
+        current_player_type = self.black_player.get() if self.game.current_player == 1 else self.white_player.get()
 
         if current_player_type == "AI" and self.game.get_legal_moves():
             self.make_ai_move()
@@ -850,11 +870,7 @@ class ModernOthelloUI:
             self.show_game_result(info)
             return
 
-        current_player_type = (
-            self.black_player.get()
-            if self.game.current_player == 1
-            else self.white_player.get()
-        )
+        current_player_type = self.black_player.get() if self.game.current_player == 1 else self.white_player.get()
         if current_player_type == "AI" and self.game.get_legal_moves():
             self.make_ai_move()
 
@@ -863,14 +879,14 @@ class ModernOthelloUI:
 
         if update_type == "reasoning":
             self.reasoning_text.configure(state="normal")
-            
+
             # self.all_text += data["text"]
             # if len(self.all_text.split('\n')[-1]) >= 30:
             #     self.all_text = ''
             #     self.reasoning_text.insert(tk.END, data["text"] + '\n')
             # else:
             #     self.reasoning_text.insert(tk.END, data["text"])
-            
+
             self.reasoning_text.insert(tk.END, data["text"])
             self.reasoning_text.see(tk.END)
             self.reasoning_text.configure(state="disabled")
@@ -880,13 +896,9 @@ class ModernOthelloUI:
 
         elif update_type == "evaluation":
             if data["player"] == 1:
-                self.evaluation_history["black"].append(
-                    (self.move_count, data["score"])
-                )
+                self.evaluation_history["black"].append((self.move_count, data["score"]))
             else:
-                self.evaluation_history["white"].append(
-                    (self.move_count, data["score"])
-                )
+                self.evaluation_history["white"].append((self.move_count, data["score"]))
             self.draw_evaluation_graph()
 
     def _ai_think_thread(self, search_config):
@@ -926,6 +938,20 @@ class ModernOthelloUI:
 
         if self.black_player.get() == "AI":
             self.make_ai_move()
+
+    def on_model_change(self, *args):
+        """Reinitialize AI when model changes"""
+        if self.ai and hasattr(self.ai, 'thinking') and self.ai.thinking:
+            messagebox.showwarning("Warning", "Please wait for AI to complete current move before switching models.")
+            return
+        
+        try:
+            self.ai = OthelloAI(self.model_path.get())
+            messagebox.showinfo("Success", "Model loaded successfully!")
+        except Exception as e:
+            messagebox.showerror("Error", f"Failed to load model: {str(e)}")
+            # Fallback to extended version if loading fails
+            self.model_path.set("models/rwkv7_othello_26m_L10_D448_extended")
 
 
 if __name__ == "__main__":
