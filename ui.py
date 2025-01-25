@@ -118,13 +118,7 @@ class ModernOthelloUI:
         if not models:
             messagebox.showwarning("Warning", "No models found in models directory!")
 
-        model_menu = ttk.Combobox(
-            model_frame, 
-            textvariable=self.model_path,
-            values=models,
-            state="readonly",
-            width=40
-        )
+        model_menu = ttk.Combobox(model_frame, textvariable=self.model_path, values=models, state="readonly", width=40)
         model_menu.pack(padx=10, pady=10)
 
         # Bind model change event
@@ -476,7 +470,7 @@ class ModernOthelloUI:
 
         tk.Label(
             depth_frame,
-            text="Search Depth",
+            text="Depth",
             font=self.fonts["text"],
             bg=self.colors["bg"],
             fg=self.colors["text"],
@@ -497,7 +491,7 @@ class ModernOthelloUI:
 
         tk.Label(
             layers_frame,
-            text="Search Breadth",
+            text="Breadth",
             font=self.fonts["text"],
             bg=self.colors["bg"],
             fg=self.colors["text"],
@@ -514,26 +508,26 @@ class ModernOthelloUI:
         )
 
         # Top-p
-        # top_p_frame = tk.Frame(settings_frame, bg=self.colors["bg"])
-        # top_p_frame.pack(side="left", expand=True)
+        top_p_frame = tk.Frame(settings_frame, bg=self.colors["bg"])
+        top_p_frame.pack(side="left", expand=True)
 
-        # tk.Label(
-        #     top_p_frame,
-        #     text="Top-p",
-        #     font=self.fonts["text"],
-        #     bg=self.colors["bg"],
-        #     fg=self.colors["text"],
-        # ).pack()
+        tk.Label(
+            top_p_frame,
+            text="Top-p",
+            font=self.fonts["text"],
+            bg=self.colors["bg"],
+            fg=self.colors["text"],
+        ).pack()
 
-        # top_p_controls = tk.Frame(top_p_frame, bg=self.colors["bg"])
-        # top_p_controls.pack()
+        top_p_controls = tk.Frame(top_p_frame, bg=self.colors["bg"])
+        top_p_controls.pack()
 
-        # self.create_spinner(
-        #     top_p_controls,
-        #     self.top_p,
-        #     lambda: self.update_value(self.top_p, -0.1),
-        #     lambda: self.update_value(self.top_p, 0.1),
-        # )
+        self.create_spinner(
+            top_p_controls,
+            self.top_p,
+            lambda: self.update_value(self.top_p, -0.1),
+            lambda: self.update_value(self.top_p, 0.1),
+        )
 
     def create_spinner(self, parent, variable, decrease_cmd, increase_cmd):
         btn_style = {
@@ -542,7 +536,7 @@ class ModernOthelloUI:
             "bg": self.colors["button"],
             "fg": self.colors["text"],
             "borderwidth": 0,
-            "padx": 5,
+            "padx": 2,
             "pady": 2,
         }
 
@@ -551,7 +545,7 @@ class ModernOthelloUI:
         tk.Label(
             parent,
             textvariable=variable,
-            width=2,
+            width=3,
             font=self.fonts["text"],
             bg=self.colors["bg"],
             fg=self.colors["text"],
@@ -941,10 +935,10 @@ class ModernOthelloUI:
 
     def on_model_change(self, *args):
         """Reinitialize AI when model changes"""
-        if self.ai and hasattr(self.ai, 'thinking') and self.ai.thinking:
+        if self.ai and hasattr(self.ai, "thinking") and self.ai.thinking:
             messagebox.showwarning("Warning", "Please wait for AI to complete current move before switching models.")
             return
-        
+
         try:
             self.ai = OthelloAI(self.model_path.get())
             messagebox.showinfo("Success", "Model loaded successfully!")
